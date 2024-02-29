@@ -1,0 +1,90 @@
+---
+title: "Homework5"
+author: "Anish Ravindran"
+date: "2024-02-25"
+output: pdf_document
+---
+Name: Anish Ravindran   
+uteid: ar76454    
+github link: https://github.com/AnishRavi5/Homework5
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(ggplot2)
+library(dplyr)
+library(kableExtra)
+library(tidyverse)
+library(readr)
+library(mosaic)
+library(boot)
+```
+
+## Question 1 ##
+```{r, echo = FALSE}
+sim_flag = do(100000)*nflip(n=2021, prob=0.024)
+ggplot(sim_flag) + geom_histogram(aes(x=nflip), color = "black", fill = "blue", binwidth=1) + geom_vline(xintercept = 70) + labs(x = "Flagged Trades out of 2021 Trades", y = "Number of Simulations", title = "Iron Bank Flagged Securities Simulations")
+pvalue = sum(sim_flag >= 70)/100000
+```
+Null Hypothesis - Over the long run, securities trades from the Iron Bank are flagged at the same 2.4% baseline rate as that of other traders?
+Test Statistic - The test statistic used was the number of trades flagged for Iron Bank out of the 2021 trades, used to measure the evidence in the data against the null hypothesis.
+Conclusion - The p-value calculated is `r pvalue` which shows us that the observed data is not consistent with the SEC's null hypothesis where they states a rate of 2.4 percent of trades getting flagged. This tells us that trades from Iron Bank are flagged at higher rates than trades from others.
+
+
+## Question 2 ##
+```{r, echo = FALSE}
+sim_health = do(100000)*nflip(n=50, prob=0.03)
+ggplot(sim_health) + geom_histogram(aes(x=nflip), color = "black", fill = "brown", binwidth=1) + geom_vline(xintercept = 8) + labs(x = "Health Code Violations out of 50 Visits", y = "Number of Simulations", title = "Gourmet Bites Health Codes Violations Simulations")
+pvalue = sum(sim_health >= 8) / 100000
+```
+Null Hypothesis - Restaurants in the city are cited for health code violations at the same 3% baseline rate?
+Test Statistic - The test statistic used was the number of restaurants with health code violations to measure the evidence in the data against the null hypothesis.
+Conclusion - The p-value calculated is `r pvalue` which shows us that the observed data for Gourmet Bites is not consistent with the locla health department's null hypothesis where they states a rate of 3 percent of inspections get health violations. This tells us that Gourmet Bites restaurants are likely violating health codes at higher rates than other restaurants in the city. 
+
+
+## Question 3 ##
+### Part A ###
+```{r, echo = FALSE}
+letters = read.csv("letter_frequencies.csv")
+brown_text <- read.table("brown_sentences.txt", sep = "\t")
+brown_text$chi = NA
+
+character = function(sentence, frequency) {
+  sentence_clean = gsub("[^A-Za-z] ", "", sentence)
+  sentence_clean = toupper(sentence_clean)
+  observed = table(factor(strsplit(sentence_clean, "")[[1]], levels = frequency$Letter))
+  total_count = sum(observed)
+  expected = total_count * frequency$Probability
+  character_stat = sum((observed - expected)^2 / expected)
+  return(character_stat)
+}
+
+for(x in 1:nrow(brown_text)) {
+  brown_text$chi[x] = character(brown_text$V1[x], letters)
+}
+
+ggplot(brown_text) + geom_histogram(aes(x = chi), binwidth = 1, color = "black", fill = "red") + labs(x = "Chi-Squared Stats", y = "Number of Simulations", title = "Histogram of Chi-Squared Stats")
+
+```
+
+### Part B ###
+```{r echo = FALSE}
+sentences <- c(
+  "She opened the book and started to read the first chapter, eagerly anticipating what might come next.",
+  "Despite the heavy rain, they decided to go for a long walk in the park, crossing the main avenue by the fountain in the center.",
+  "The museum’s new exhibit features ancient artifacts from various civilizations around the world.",
+  "He carefully examined the document, looking for any clues that might help solve the mystery.",
+  "The students gathered in the auditorium to listen to the guest speaker’s inspiring lecture.",
+  "Feeling vexed after an arduous and zany day at work, she hoped for a peaceful and quiet evening at home, cozying up after a quick dinner with some TV, or maybe a book on her upcoming visit to Auckland.",
+  "The chef demonstrated how to prepare a delicious meal using only locally sourced ingredients, focusing mainly on some excellent dinner recipes from Spain.",
+  "They watched the sunset from the hilltop, marveling at the beautiful array of colors in the sky.",
+  "The committee reviewed the proposal and provided many points of useful feedback to improve the project’s effectiveness.",
+  "Despite the challenges faced during the project, the team worked tirelessly to ensure its successful completion, resulting in a product that exceeded everyone’s expectations."
+)
+
+LLM_sentences = tibble("Sentence" = 1:10, "pvalue" = rep(NA,10))
+for (i in 1:10) {
+  p = character(sentences[i], letters) / nrow(brown_text)
+  LLM_sentences$pvalue[i] = round(p,3)
+}
+kbl(LLM_sentences)
+```
+Based on the data in the table we can assume that the sentence that was adjusted by the LLM was sentence 6. This is because it was the sentence with the p-value that differed from the other sentences and this p-value was this highest at 0.002. The other sentences had p-values of 0.000 or 0.001.
